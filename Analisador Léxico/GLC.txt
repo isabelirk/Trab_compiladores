@@ -1,5 +1,12 @@
-<S> ::= <VAR>
-<VAR> ::= name = valor <OP> | <VAR>
-<OP> ::= se (  ) | ou_se (  ) | se_nao (  ) | 
-                enquanto ( <OP EXP> ) {  }
-<OP EXP> ::= 
+<S> ::= novov <VAR>
+<VAR0> ::= .name. = 0constant <VAR1>
+<VAR1> ::= ',' .name. = 0constant <VAR1> | <OP> | $
+<OP> ::= <LOGIC> | <PRINT> | <SCANF>  
+<LOGIC> ::= se '(' <OPEX> ')' '{' <EXP> '}' | ou_se '(' <OPEX> ')' '{' <EXP> '}' | enquanto '(' <OPEX> ')' '{' <EXP> '}'
+<SCANF> ::= escreve '(' .name. ')' ':' 0constant | <VAR1>
+<PRINT> ::= na_tela '(' .name. ')' | na_tela '(' 0constant ')' 
+<OPEX> ::= <VAR> | <CONSTANT>
+<VAR> ::= .name. == .name. | .name. != .name. | .name. +ior .name. | .name. -ior .name.
+<CONSTANT> ::= .name. == 0constant | .name. != 0constant | .name. +ior 0constant | .name. -ior 0constant |
+<EXP> ::= <SIMB> '*' <SIMB> | <SIMB> '/' <SIMB> | <SIMB> '-' <SIMB> | <SIMB> '+' <SIMB>
+<SIMB> ::= '-' .nome. | .nome. | '-' 0constant | 0constant

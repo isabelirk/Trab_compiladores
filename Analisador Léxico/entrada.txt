@@ -1,15 +1,9 @@
 se
 ou_se
-se_nao
 enquanto
-repete
-escolhe
 escreve
-caso
 na_tela
 quebra
-continua
-espera
 ou
 e
 novov
@@ -23,10 +17,11 @@ novov
 )
 /
 -
-,
-"
 +
 *
+,
++ior
+-ior
 
 <S> ::= .<A> | 0<C>
 <A> ::= 0<A> | x<A> | .<B> | $
