@@ -1,5 +1,5 @@
 "Start Symbol" = <S>
-<S> ::= 'novov' <VAR>
+<S> ::= 'novov' <VAR0>
 <VAR0> ::= '.name.' = '0constant' <VAR1>
 <VAR1> ::= ',' '.name.' = '0constant' <VAR1> | <OP> | $
 <OP> ::= <LOGIC> | <PRINT> | <SCANF>  
