@@ -1,28 +1,2 @@
 novov .x0x0x0x0. = 0986545641
 .name. != .name.
-se
-ou_se
-se_nao
-enquanto
-escreve
-na_tela
-quebra
-continua
-espera
-ou
-e
-novov
-=
-==
-!=
-:
-{
-}
-(
-)
-/
--
-,
-"
-+
-*

@@ -10,4 +10,4 @@
 <VAR> ::= '.name.' '==' '.name.' | '.name.' '!=' '.name.' | '.name.' '+ior' '.name.' | '.name.' '-ior' '.name.'
 <CONSTANT> ::= '.name.' '==' '0constant' | '.name.' '!=' '0constant' | '.name.' '+ior' '0constant' | '.name.' '-ior' '0constant'
 <EXP> ::= <SIMB> '*' <SIMB> | <SIMB> '/' <SIMB> | <SIMB> '-' <SIMB> | <SIMB> '+' <SIMB>
-<SIMB> ::= '-' '.nome.' | '.nome.' | '-' '0constant' | '0constant'
+<SIMB> ::= '-' '.name.' | '.name.' | '-' '0constant' | '0constant'
