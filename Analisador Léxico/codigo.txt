@@ -1,2 +1,26 @@
-novov .x0x0x0x0. = 0986545641
-.name. != .name.
+.x0x0x0x0.
+0986545641
+se
+ou_se
+enquanto
+escreve
+na_tela
+quebra
+ou
+e
+novov
+=
+==
+!=
+:
+{
+}
+(
+)
+/
+-
++
+*
+,
++ior
+-ior

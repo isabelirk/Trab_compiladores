@@ -162,7 +162,6 @@ class Automato(object):         #carga do automato finito
         xml_parser = "GLC.xml"
         tree = ET.parse(xml_parser)
         root = tree.getroot()
-
         for symbol in root.iter('Symbol'):
             for x in Ts:
                 if x['Rotulo'] == symbol.attrib['Name']:
@@ -170,9 +169,7 @@ class Automato(object):         #carga do automato finito
                 elif x['Rotulo'][0] == '.' and x['Rotulo'][-1] == '.' and symbol.attrib['Name'] == '.name.':
                     x['Estado'] = symbol.attrib['Index']
                 elif x['Rotulo'][0] == '0' and symbol.attrib['Name'] == '0constant':
-                    x['Estado'] = symbol.attrib['Index']
-                                  
-                
+                    x['Estado'] = symbol.attrib['Index']  
 
         print("\n Após mapeamento: \n")
         for x in Ts:
