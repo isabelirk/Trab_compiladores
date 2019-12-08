@@ -3,9 +3,6 @@ ou_se
 enquanto
 escreve
 na_tela
-quebra
-ou
-e
 novov
 =
 ==
