@@ -1,0 +1,13 @@
+"Start Symbol" = <S>
+<S> ::= 'novov' <VAR0>
+<VAR0> ::= '.name.' '=' '0constant' <VAR1>
+<VAR1> ::= ',' '.name.' '=' '0constant' <VAR1> | <OP>
+<OP> ::= <LOGIC> <OP> | <PRINT> <OP> | <SCANF> <OP> | <>
+<LOGIC> ::= 'se' '(' <OPEX> ')' '{' <EXP> '}' | 'ou_se' '(' <OPEX> ')' '{' <EXP> '}' | 'enquanto' '(' <OPEX> ')' '{' <EXP> '}'
+<SCANF> ::= 'escreve' '(' '.name.' ')' ':' '0constant' 
+<PRINT> ::= 'na_tela' '(' '.name.' ')' | 'na_tela' '(' '0constant' ')' 
+<OPEX> ::= <VAR> | <CONSTANT>
+<VAR> ::= '.name.' '==' '.name.' | '.name.' '!=' '.name.' | '.name.' '+ior' '.name.' | '.name.' '-ior' '.name.'
+<CONSTANT> ::= '.name.' '==' '0constant' | '.name.' '!=' '0constant' | '.name.' '+ior' '0constant' | '.name.' '-ior' '0constant'
+<EXP> ::= '.name.' '=' <SIMB> '*' <SIMB> | '.name.' '=' <SIMB> '/' <SIMB> | '.name.' '=' <SIMB> '-' <SIMB> | '.name.' '=' <SIMB> '+' <SIMB>
+<SIMB> ::= '-' '.name.' | '.name.' | '-' '0constant' | '0constant'
