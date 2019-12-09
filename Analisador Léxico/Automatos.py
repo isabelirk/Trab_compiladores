@@ -1,6 +1,5 @@
 from Producao import Producao
 import re
-import xml.etree.ElementTree as ET
 
 class Automato(object):         #carga do automato finito
 
@@ -108,7 +107,6 @@ class Automato(object):         #carga do automato finito
 
     def imprimir(self, mensagem, First = False):        #imprime o automato no terminal e no arquivo.txt
         self.imprimirTela(mensagem)            
-        self.analisador_lexico_sintatico()
 
     def imprimirTela(self, mensagem = ''):      #imprime automato deterministico
         # print(mensagem)                                             #mostra mensagem, para identificar o automato que se está imprimindo
@@ -119,62 +117,7 @@ class Automato(object):         #carga do automato finito
             for simbolo, transicoes in estado.items():              #percorre cada estado    
                 if len(transicoes) > 0:                             #se existir transições para símbolo
                     print(simbolo, transicoes, end=', ')            #imprime símbolo e lista de transições
-            print('')
-
-        
-    def analisador_lexico_sintatico(self):
-        tabela = self.pegarAutomato()
-        fitaS = [] 
-        Ts = []    
-        codigoFonte = list(open('codigo.txt'))
-        separador = [' ', '\n', '\t']
-        palavra = ''
-        count = 0
-        estado = 0
-        for linha in codigoFonte:
-            count += 1
-            for caracter in linha:
-                if caracter in separador and palavra:
-                    Ts.append({'Linha': str(count), 'Estado': str(estado), 'Rotulo': palavra.strip('\n')})
-                    fitaS.append(estado)
-                    estado = 0
-                    palavra = ''
-                else:    
-                    try:
-                        estado = tabela[estado][caracter][0]
-                    except KeyError:
-                        estado = -1
-                    if caracter != ' ':
-                        palavra += caracter
-
-        print("\nFINAIS: ", self.Finais, "\n")
-
-        print("\n Fita de saída:", fitaS, "\n")
-
-        for x in Ts:
-            print(x)
-        print('\n')
-
-        for erro in Ts:
-            if erro['Estado'] == '-1':
-                print('Erro Léxico: linha {}, erro {}' .format(erro['Linha'], erro['Rotulo']))
-        
-        xml_parser = "GLC.xml"
-        tree = ET.parse(xml_parser)
-        root = tree.getroot()
-        for symbol in root.iter('Symbol'):
-            for x in Ts:
-                if x['Rotulo'] == symbol.attrib['Name']:
-                    x['Estado'] = symbol.attrib['Index'] 
-                elif x['Rotulo'][0] == '.' and x['Rotulo'][-1] == '.' and symbol.attrib['Name'] == '.name.':
-                    x['Estado'] = symbol.attrib['Index']
-                elif x['Rotulo'][0] == '0' and symbol.attrib['Name'] == '0constant':
-                    x['Estado'] = symbol.attrib['Index']  
-
-        print("\n Após mapeamento: \n")
-        for x in Ts:
-            print(x)
-        print('\n')
+            print('')        
 
 
     def setAlfabetoEstado(self, estado):    #em um estado é inserido todos os símbolos do alfabeto

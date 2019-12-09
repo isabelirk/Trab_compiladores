@@ -1,6 +1,53 @@
 from Automatos import Automato
 from Producao import Producao
-from Inuteis import Inuteis
+import xml.etree.ElementTree as ET
+
+class Inuteis(Automato):
+
+    def __init__(self, automato):
+        super(Inuteis, self).__init__()
+        self.Estados = automato.Estados
+        self.Alfabeto = automato.Alfabeto
+        self.Finais = automato.Finais
+        self.TransicoesVisitadas = automato.TransicoesVisitadas
+        self.AutomatoMinimizado = automato.AutomatoMinimizado
+
+    def gerarEstadosParaMinimizacao(self):
+        estadosTemp = dict()
+        AutomatoValido = self.pegarAutomato()
+
+        for transicao in AutomatoValido:
+            if (transicao in self.Finais) and (AutomatoValido[transicao] == {}):
+                estadosTemp.update({transicao: {}})
+                continue
+
+            for producao in list(AutomatoValido[transicao]):
+                if len(AutomatoValido[transicao][producao]) > 0:
+                    if transicao not in estadosTemp: 
+                        estadosTemp.update({transicao: {producao: Producao(AutomatoValido[transicao][producao][0])}})
+                    else:
+                        if producao not in estadosTemp[transicao]:
+                            estadosTemp[transicao].update({producao: Producao(AutomatoValido[transicao][producao][0])})
+                else:                    
+                    if ((transicao in estadosTemp) and (producao not in estadosTemp[transicao])):
+                        estadosTemp[transicao].update({producao: Producao(-1)})
+                    elif transicao in self.Finais:
+                        estadosTemp.update({transicao: {producao: Producao(-1)}})
+
+        return estadosTemp
+
+    def adicionaAutomatoMinimizado(self,transicao,producaoAtual,producaoInserir):
+        if producaoAtual == -1:
+            if transicao not in self.AutomatoMinimizado:
+                self.AutomatoMinimizado.update({transicao: {}})
+        else:
+            if transicao not in self.AutomatoMinimizado:
+                self.AutomatoMinimizado.update({transicao: {producaoAtual: [producaoInserir]}})
+            else:
+                if producaoAtual not in self.AutomatoMinimizado[transicao]:
+                    self.AutomatoMinimizado[transicao].update({producaoAtual: [producaoInserir]})
+
+
 
 ############################## Organiza o automato para realizar as operacoes das classes abaixo ##############################
 automato = Automato()                              
@@ -72,8 +119,7 @@ class EpsilonTransicao(Automato):
         self.Alfabeto.remove(self.EPSILON)
 
 livreEpsilon = EpsilonTransicao(automato)           
-livreEpsilon.eliminarEpsilonTransicoes()      #busca e trata a epsilon
-#livreEpsilon.imprimir()                            
+livreEpsilon.eliminarEpsilonTransicoes()      #busca e trata a epsilon                         
 
 ############################## Determiniza ##############################
 class Determinizacao(Automato):
@@ -207,7 +253,6 @@ class Determinizacao(Automato):
 
 determinizado = Determinizacao(automato) 
 determinizado.determinizar()                   
-#determinizado.imprimir()
 
 
 ############################## Elimina inalcançaveis ##############################
@@ -239,8 +284,7 @@ class Inalcancaveis(Inuteis):
                 self.visitaNovaProducaoInalcancavel(estados, estados[transicao][producao].producao);     #busca recursivamente o estado final
 
 semInalcancaveis = Inalcancaveis(automato)
-semInalcancaveis.removerInalcancaveis()    
-#semInalcancaveis.imprimir() 
+semInalcancaveis.removerInalcancaveis()     
 
 
 ############################## Elimina mortos ##############################
@@ -282,6 +326,80 @@ class Mortos(Inuteis):
 
         return False
 
+
 semMortos = Mortos(semInalcancaveis)      
 semMortos.removerMortos()                 
 semMortos.imprimir()
+
+############################## Analise Léxica / Sintática ##############################
+class Analise(Inuteis):
+    def __init__(self, automato):
+        super(Analise, self).__init__(automato)
+
+    def imprimir(self):
+        return super().imprimir('#DETERMINIZADO, LIVRE DE EPSILON TRANSIÇÃO E LIVRE DE MORTOS E INALCANÇAVÉIS:\n')
+
+    def analisador_lexico_sintatico(self):
+        tabela = self.pegarAutomato()
+        fitaS = [] 
+        Ts = []    
+        codigoFonte = list(open('codigo.txt'))
+        separador = [' ', '\n', '\t']
+        palavra = ''
+        count = 0
+        estado = 0
+        for linha in codigoFonte:
+            count += 1
+            for caracter in linha:
+                if caracter in separador and palavra:
+                    Ts.append({'Linha': str(count), 'Estado': str(estado), 'Rotulo': palavra.strip('\n')})
+                    # fitaS.append(estado) //alterado para append após o mapeamento da GLC.xml
+                    estado = 0
+                    palavra = ''
+                else:    
+                    try:
+                        estado = tabela[estado][caracter][0]
+                    except KeyError:
+                        estado = -1
+                    if caracter != ' ':
+                        palavra += caracter
+
+        xml_parser = "GLC.xml"
+        tree = ET.parse(xml_parser)
+        root = tree.getroot()
+        for symbol in root.iter('Symbol'):
+            for x in Ts:
+                if x['Rotulo'] == symbol.attrib['Name']:
+                    x['Estado'] = symbol.attrib['Index'] 
+                elif x['Rotulo'][0] == '.' and x['Rotulo'][-1] == '.' and symbol.attrib['Name'] == '.name.':
+                    x['Estado'] = symbol.attrib['Index']
+                elif x['Rotulo'][0] == '0' and symbol.attrib['Name'] == '0constant':
+                    x['Estado'] = symbol.attrib['Index']  
+
+        print("\n")
+        for x in Ts:
+            fitaS.append(x['Estado'])
+            print(x)
+        print("\n Fita de saída:", fitaS, "\n")
+
+        for erro in Ts:
+            if erro['Estado'] == '-1':
+                print('Erro Léxico: linha "{}", erro "{}"' .format(erro['Linha'], erro['Rotulo']))
+
+        # fitaS -> fita de saída com os tokens/estados que reconhecem
+        # pilha -> vetor que inicia em 0 (guarda as ações e desempilha)
+
+        pilha = []
+        pilha.append(0)
+        for fita in fitaS:
+            for linha in root.iter('LALRState'):    
+                if linha.attrib['Index'] == str(pilha[-1]):
+                    for coluna in linha:
+                        if coluna.attrib['SymbolIndex'] == fita:
+                            pilha.append(fita)
+                            pilha.append(coluna.attrib['Value'])
+            break
+        print(pilha)
+
+analise = Analise(semInalcancaveis)
+analise.analisador_lexico_sintatico()
