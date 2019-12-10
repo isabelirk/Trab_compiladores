@@ -1,7 +1,180 @@
-from Automatos import Automato
-from Producao import Producao
+# from Producao import Producao
 import xml.etree.ElementTree as ET
+import re
 
+class Producao():
+    producao = 0
+    visitado = False
+
+    def __init__(self, producao):
+       self.producao = producao
+       self.visitado = False
+       self.chegouEstadoTerminal = False
+
+    def temProducao(self):
+        return self.producao >= 0
+
+class Automato(object):         #carga do automato finito
+
+    FINAL = '$'     #identifica um estado final
+    EPSILON = '#'   #identifica o símbolo épsilon
+    Estados = dict()                #estados do autômato
+    Alfabeto = set()                #símbolos do alfabeto
+    Finais = set()                  #estados que são finais
+    Texto = str()                   #string de entrada
+    NovosEstados = dict()           #usada para identificar a origem das novas produções criadas na determinização
+    TransicoesVisitadas = list()    #indicar quais transições já foram visitadas na busca em profundidade da remoção de inúteis
+    AutomatoMinimizado = dict()     #guardar o automato ao final do processo de minimização
+
+    def __init__(self):
+        self.Estados = dict()       
+        self.Alfabeto = set()       
+        self.Finais = set()         
+        self.NovosEstados = dict()
+        self.AutomatoMinimizado = dict()
+
+    def carregaToken(self, simbolo, new):       #inserção de Tokens da Linguagem
+        self.Alfabeto.add(simbolo)              #adiciona os símbolos ao alfabeto
+
+        if new:                                                                         #se novo token:
+            if simbolo in self.Estados[0]:                                              #se já existir no estado:
+                self.Estados[0][simbolo].append(len(self.Estados))                      #adiciona na lista de estados destinos daquele token
+            else:                                                                       #se token não existir no estado:
+                self.Estados[0].update({simbolo: [len(self.Estados)]})                  #adiciona nova entrada para o token
+            self.Estados.update({len(self.Estados): {}})                                #cria um estado vazio para a próxima iteração
+        if not new:                                                                      #se símbolo for de um token já existente:
+            self.Estados[len(self.Estados) - 1].update({simbolo: [len(self.Estados)]})  #insere no último estado criado
+            self.Estados.update({len(self.Estados): {}})                                #cria um estado vazio para a próxima iteração
+    
+
+    def carregaGramatica(self, textos):         #leitura das regras da Gramática Regular
+        regras = dict()         #mapeamento das regras
+        estados = dict()        #estados da gramática
+        ignorar = [' ', ':']      
+
+        def novaRegra(self, texto):     #insere uma nova regra no mapa de regras
+            if texto == 'S':                #se identificador do estado for S:
+                estados.update({0: {}})        #add no estado inicial                
+                regras.update({'S': 0})        #mapeia
+
+            else:                #senão
+                numero = len(set(list(self.Estados) + list(estados)))           
+                regras.update({texto: numero})           #insere a regra com o número                
+                estados.update({regras[texto]: {}})      #mapeado para o número do último estado
+
+        def novaTransicao(self, texto, regra):      #insere nova transição nas regras
+            self.Alfabeto.add(texto)           #add símbolo no alfabeto
+
+            if regra not in regras:            #se regra não foi mapeada cria nova
+                novaRegra(self, regra)       
+
+            if texto in estados[regraAtiva]:          #se símbolo já existe no estado:
+                lista = list(set(estados[regraAtiva][texto] + [regras[regra]])) #add simbolo novo aos existentes
+                estados[regraAtiva][texto] = lista                           
+
+            else:               #senao add o símbolo no estado.
+                estados[regraAtiva].update({texto: [regras[regra]]})   
+
+        for linha in textos:        #percorre as linhas do texto de entrada
+            word = ''               #zera a palavra
+            for caractere in linha:         #percorre os caracteres da linha
+                if caractere in ignorar:        #se estiver na lista de ignorados
+                    continue                    #vai para o próximo caracter
+
+                word = word + caractere       #concatena a palavra com o caractere válido
+
+                if re.match('<\S>', word) is not None:    #se a palavra tem o formato de um nome de regra
+                    if word[1] not in regras:         #se não existe regra com esse nome
+                        novaRegra(self, word[1])          #add a nova regra com esse nome
+                    regraAtiva = regras[word[1]]          #marca a flag de regra ativa para add uma transição nessa regra
+                    word = ''                                                  
+
+                elif (re.match('\|\S<\S>', word) is not None or re.match('=\S<\S>', word) is not None):     #se palavra tem formato de uma transição             
+                    novaTransicao(self, word[1], word[3])           #add uma nova transição à regra ativa
+                    word = ''                                                
+
+                elif (re.match('\|<\S>', word) is not None or re.match('=<\S>', word) is not None):     #se palavra tem formato de um nome de regra e está no meio da regra 
+                    novaTransicao(self, self.EPSILON, word[2])      #add uma nova épsilon transição à regra ativa
+                    word = ''                                                  
+
+                elif ((word == '|' + self.FINAL) or (word == '=' + self.FINAL)):     #se encontrado um caractere que indica estado final: 
+                     self.Finais.add(regraAtiva)         #marca a regra ativa como final.
+
+            self.insereEstadosGramatica(estados)         #insere os estados nos estados do automato
+
+
+    def insereEstadosGramatica(self, estados):      #inserção das regras no automato   
+        for nome, estado in estados.items():                   #percore o estado temporario
+            self.setAlfabetoEstado(estado)                     #coloca todos os símbolos do alfabeto em estado, até os que tem transição vazia
+            for simbolo, transicoes in estado.items():         #percorre todos os itens/transições de estado
+                if nome not in self.Estados:                   #se nome/número do estado não existe no automato
+                    self.Estados.update({nome: {}})            #add o estado ao automato
+
+                if simbolo in self.Estados[nome]:                               #se símbolo já existe no estado
+                    lista = list(set(self.Estados[nome][simbolo] + transicoes)) #add as transições do estado temporário
+                    self.Estados[nome][simbolo] = lista                         #junto às transições do estado do automato
+
+                else:     
+                    self.Estados[nome].update({simbolo: transicoes})      #senão add as novas transições no estado.
+
+
+    def imprimir(self, mensagem, First = False):        #imprime o automato no terminal e no arquivo.txt
+        self.imprimirTela(mensagem)            
+
+    def imprimirTela(self, mensagem = ''):      #imprime automato deterministico
+        # print(mensagem)                                             #mostra mensagem, para identificar o automato que se está imprimindo
+        estados = self.pegarAutomato()                              #utiliza o estado minimiazdo se existir
+        for nome, estado in sorted(estados.items()):                #PERCORRE CADA ESTADO(nome) com uma lista desse estado(estado)
+            print(' *' if nome in self.Finais else '  ', end='')    #se NOME está em FINAIS, então *
+            print(nome, end=' = ')                                  #imprime NOME/NUMERO do estado
+            for simbolo, transicoes in estado.items():              #percorre cada estado    
+                if len(transicoes) > 0:                             #se existir transições para símbolo
+                    print(simbolo, transicoes, end=', ')            #imprime símbolo e lista de transições
+            print('')        
+
+
+    def setAlfabetoEstado(self, estado):    #em um estado é inserido todos os símbolos do alfabeto
+        for simbolo in sorted(self.Alfabeto):   #percorre os símbolos do alfabeto da linguagem
+            if simbolo not in estado:           #se não existir no estado:
+                estado.update({simbolo: []})    #add o símbolo associado à uma lista vazia.
+
+
+    def setAlfabeto(self):          #relacioana os estados com os símbolos do alfabeto
+        estados = self.pegarAutomato()          #utiliza o estado minimizado se existir
+        for nome, estado in estados.items():    #percorre estados
+            self.setAlfabetoEstado(estado)      #relacioana o estado com os símbolos do alfabeto
+
+    def carrega(self, arquivo):     #Insere no automato
+        arquivo = open(arquivo, 'r')
+        entrada = arquivo.read()                        #converte o arquivo para string
+        new = True                                      #verificar se tem duas quebras de linha, significa que não tem mais tokens pra ler
+        self.Estados.update({len(self.Estados): {}})    #inicializa o estado inicial com: um inteiro para chave e um dicionário vazio para conteúdo
+
+        for simbolo in entrada:                         #percorre caractere a caractere na string da estrada
+            simbolo = simbolo.lower()                   #pega todas as letras minusculas
+
+            if simbolo == '\n':                         #verifica onde tem quebra de linha
+                if new:                                 #com duas quebras de linha termina a leitura dos tokens
+                    break                               
+                new = True                              #verificar se ainda tem simbolos a serem lidos
+                self.Finais.add(len(self.Estados) - 1)  #adiciona o simbolo final do token em um estado
+
+            else:
+                self.carregaToken(simbolo, new)         #carrega o token para o autômato.
+                new = False                             #reseta a variável para o próximo símbolo
+
+        texto = entrada.partition('\n\n')[2]            #separa o texto após as duas quebras de linha para a leitura de gramática
+        self.carregaGramatica(texto.splitlines())       #envia o texto em formato de lista com as linhas do texto
+        self.setAlfabeto()                              # Relaciona os estados com o alfabeto da linguagem
+
+
+    def pegarAutomato(self):           #retorna automato mais atualizado existente
+        if len(self.AutomatoMinimizado) > 0:    #se tamanho do dicionário de estados maior que 0 já existe um autômato minimizado
+            return self.AutomatoMinimizado   
+        else:                 #senão retorna o da estrutura original
+            return self.Estados             
+
+############################## Elimina Inuteis ##############################
 class Inuteis(Automato):
 
     def __init__(self, automato):
@@ -52,7 +225,7 @@ class Inuteis(Automato):
 ############################## Organiza o automato para realizar as operacoes das classes abaixo ##############################
 automato = Automato()                              
 automato.carrega('entrada.txt')                      
-#automato.imprimir('\n\n# AUTOMATO LIDO:\n', True)  
+# automato.imprimir('\n\n# AUTOMATO LIDO:\n', True)  
 
 
 ############################## Elimina Epsilon Transição ##############################
@@ -65,13 +238,8 @@ class EpsilonTransicao(Automato):
         self.Alfabeto = automato.Alfabeto
         self.Finais = automato.Finais
 
-    def imprimir(self):
-        return super().imprimir('\n\n# LIVRE DE EPSILON TRANSICOES:\n')
-
-
     def eliminarEpsilonTransicoes(self):
         self.buscarEpsilonTransicoes() 
-
 
     def buscarEpsilonTransicoes(self):        
         if super().EPSILON not in self.Alfabeto:
@@ -90,7 +258,6 @@ class EpsilonTransicao(Automato):
             i += 1
 
         self.removerEpsilonTransicoesEstados()
-
 
     def removerEpsilonTransicoes(self, transicaoOriginal, transicaoEpsilon, producoesComEpsilon):
         if len(self.Estados[transicaoOriginal][self.EPSILON]) > 0:
@@ -129,9 +296,6 @@ class Determinizacao(Automato):
         self.Estados = automato.Estados
         self.Alfabeto = automato.Alfabeto
         self.Finais = automato.Finais
-    
-    def imprimir(self):     #chama a função imprimir da classe pai
-        return super().imprimir('\n\n# DETERMINIZADO:\n')
 
     def determinizar(self):     #inicia a determinização
         self.buscarIndeterminismo() #busca indeterminismos
@@ -260,9 +424,6 @@ class Inalcancaveis(Inuteis):
     
     def __init__(self, automato):
         super(Inalcancaveis, self).__init__(automato)
-
-    def imprimir(self):
-        return super().imprimir('\n\n# SEM INALCANCAVEIS:\n')
           
     def removerInalcancaveis(self):
         estados = self.gerarEstadosParaMinimizacao()
@@ -336,9 +497,6 @@ class Analise(Inuteis):
     def __init__(self, automato):
         super(Analise, self).__init__(automato)
 
-    def imprimir(self):
-        return super().imprimir('#DETERMINIZADO, LIVRE DE EPSILON TRANSIÇÃO E LIVRE DE MORTOS E INALCANÇAVÉIS:\n')
-
     def analisador_lexico_sintatico(self):
         tabela = self.pegarAutomato()
         fitaS = [] 
@@ -386,19 +544,51 @@ class Analise(Inuteis):
             if erro['Estado'] == '-1':
                 print('Erro Léxico: linha "{}", erro "{}"' .format(erro['Linha'], erro['Rotulo']))
 
-        # fitaS -> fita de saída com os tokens/estados que reconhecem
-        # pilha -> vetor que inicia em 0 (guarda as ações e desempilha)
-
         pilha = []
         pilha.append(0)
+        erro = 0
+        Rc = 0
         for fita in fitaS:
-            for linha in root.iter('LALRState'):    
-                if linha.attrib['Index'] == str(pilha[-1]):
+            if erro == 1:
+                print("\nErro de sintaxe!\n")
+                break
+            for linha in root.iter('LALRState'):
+                if erro == 1:
+                    break
+                elif linha.attrib['Index'] == str(pilha[-1]): # Sei que aqui tenho linha do topo da pilha
                     for coluna in linha:
-                        if coluna.attrib['SymbolIndex'] == fita:
+                        if coluna.attrib['SymbolIndex'] == fita and coluna.attrib['Action'] == '1': # Empilhar
                             pilha.append(fita)
-                            pilha.append(coluna.attrib['Value'])
-            break
+                            pilha.append(int(coluna.attrib['Value']))
+                        elif coluna.attrib['SymbolIndex'] == fita and coluna.attrib['Action'] == '2': # Reduzir
+                            for prod in root.iter('Production'):
+                                if prod.attrib['Index'] == coluna.attrib['Value']:
+                                    Rx = 2 * int(prod.attrib['SymbolCount'])
+                                    break
+                            if len(pilha) <= Rx:
+                                erro = 1
+                                break
+                            for remove in range(Rx):
+                                pilha.pop()
+                            for linhaR in root.iter('LALRState'):
+                                if linhaR.attrib['Index'] == str(pilha[-1]):
+                                    for colunaR in linhaR:
+                                        if colunaR.attrib['SymbolIndex'] == prod.attrib['NonTerminalIndex']:
+                                            pilha.append(prod.attrib['NonTerminalIndex'])
+                                            pilha.append(int(colunaR.attrib['Value']))
+                                            Rc = 1
+                                            break
+                                if Rc == 1:
+                                    Rc = 0
+                                    break
+
+
+                            #após pop verificar novo topo da pilha com a regra que foi usada para calcular N nas <production>
+                            #dar pilha.append(regra do <production> usada) e pilha.apprend(int(value da LALRAction encontrada acima))
+                        elif coluna.attrib['SymbolIndex'] == fita and coluna.attrib['Action'] == '4':
+                            print("\nAnalise sintática aceita!\n")
+                            #ACEITA
+                        #Entender se precisa de condição se coluna.attrib['Action'] == '3' que é Salto
         print(pilha)
 
 analise = Analise(semInalcancaveis)
