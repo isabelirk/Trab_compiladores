@@ -4,6 +4,7 @@ enquanto
 escreve
 na_tela
 novov
+quebra
 =
 ==
 !=
