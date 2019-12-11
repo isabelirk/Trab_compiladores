@@ -549,47 +549,60 @@ class Analise(Inuteis):
         erro = 0
         Rc = 0
         for fita in fitaS:
-            if erro == 1:
-                print("\nErro de sintaxe!\n")
+            if erro == 1 or erro == -1:
                 break
             for linha in root.iter('LALRState'):
-                if erro == 1:
+                if erro == 1 or erro == -1:
                     break
-                elif linha.attrib['Index'] == str(pilha[-1]): # Sei que aqui tenho linha do topo da pilha
+                elif linha.attrib['Index'] == str(pilha[-1]):
                     for coluna in linha:
-                        if coluna.attrib['SymbolIndex'] == fita and coluna.attrib['Action'] == '1': # Empilhar
-                            pilha.append(fita)
-                            pilha.append(int(coluna.attrib['Value']))
-                        elif coluna.attrib['SymbolIndex'] == fita and coluna.attrib['Action'] == '2': # Reduzir
-                            for prod in root.iter('Production'):
-                                if prod.attrib['Index'] == coluna.attrib['Value']:
-                                    Rx = 2 * int(prod.attrib['SymbolCount'])
-                                    break
-                            if len(pilha) <= Rx:
-                                erro = 1
+                        if coluna.attrib['SymbolIndex'] == fita:
+
+                            if coluna.attrib['Action'] == '1':              # Empilha
+                                pilha.append(fita)
+                                pilha.append(int(coluna.attrib['Value']))
                                 break
-                            for remove in range(Rx):
-                                pilha.pop()
-                            for linhaR in root.iter('LALRState'):
-                                if linhaR.attrib['Index'] == str(pilha[-1]):
-                                    for colunaR in linhaR:
-                                        if colunaR.attrib['SymbolIndex'] == prod.attrib['NonTerminalIndex']:
-                                            pilha.append(prod.attrib['NonTerminalIndex'])
-                                            pilha.append(int(colunaR.attrib['Value']))
-                                            Rc = 1
-                                            break
-                                if Rc == 1:
-                                    Rc = 0
+
+                            elif coluna.attrib['Action'] == '2':            # Redução
+                                for prod in root.iter('Production'):
+                                    if prod.attrib['Index'] == coluna.attrib['Value']:
+                                        Rx = 2 * int(prod.attrib['SymbolCount'])
+                                        break
+                                if len(pilha) <= Rx:
+                                    erro = 1
                                     break
+                                for remove in range(Rx):
+                                    pilha.pop()
+                                for linhaR in root.iter('LALRState'):
+                                    if linhaR.attrib['Index'] == str(pilha[-1]):
+                                        for colunaR in linhaR:
+                                            if colunaR.attrib['SymbolIndex'] == prod.attrib['NonTerminalIndex']:
+                                                pilha.append(prod.attrib['NonTerminalIndex'])
+                                                pilha.append(int(colunaR.attrib['Value']))
+                                                Rc = 1
+                                                break
+                                    if Rc == 1:
+                                        Rc = 0
+                                        break
+
+                            elif coluna.attrib['Action'] == '3':            # Salto
+                                pilha.append(int(coluna.attrib['Value']))
+                                break
+
+                            elif coluna.attrib['Action'] == '4':            # Aceita
+                                erro = -1
+                                break
+                    break
+        
+        if erro == 1:
+            print("\nErro de sintaxe!\n")
+        elif erro == -1:
+            print("\nAceito!\n")
 
 
-                            #após pop verificar novo topo da pilha com a regra que foi usada para calcular N nas <production>
-                            #dar pilha.append(regra do <production> usada) e pilha.apprend(int(value da LALRAction encontrada acima))
-                        elif coluna.attrib['SymbolIndex'] == fita and coluna.attrib['Action'] == '4':
-                            print("\nAnalise sintática aceita!\n")
-                            #ACEITA
-                        #Entender se precisa de condição se coluna.attrib['Action'] == '3' que é Salto
-        print(pilha)
+
+
+        print("Pilha: ", pilha)
 
 analise = Analise(semInalcancaveis)
 analise.analisador_lexico_sintatico()
