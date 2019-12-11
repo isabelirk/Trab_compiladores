@@ -224,7 +224,7 @@ class Inuteis(Automato):
 
 ############################## Organiza o automato para realizar as operacoes das classes abaixo ##############################
 automato = Automato()                              
-automato.carrega('entrada.txt')                      
+automato.carrega('./config/entrada.txt')                      
 # automato.imprimir('\n\n# AUTOMATO LIDO:\n', True)  
 
 
@@ -490,7 +490,7 @@ class Mortos(Inuteis):
 
 semMortos = Mortos(semInalcancaveis)      
 semMortos.removerMortos()                 
-semMortos.imprimir()
+# semMortos.imprimir()      #DEBUG AUTOMATO FINITO
 
 ############################## Analise Léxica / Sintática ##############################
 class Analise(Inuteis):
@@ -511,7 +511,7 @@ class Analise(Inuteis):
             for caracter in linha:
                 if caracter in separador and palavra:
                     Ts.append({'Linha': str(count), 'Estado': str(estado), 'Rotulo': palavra.strip('\n')})
-                    # fitaS.append(estado) //alterado para append após o mapeamento da GLC.xml
+                    # fitaS.append(estado) //alterado para append após o mapeamento da GLC.xml      #DEBUG FITA DE SAÍDA ANTES DO MAPEAMENTO COM XML
                     estado = 0
                     palavra = ''
                 else:    
@@ -522,14 +522,14 @@ class Analise(Inuteis):
                     if caracter != ' ':
                         palavra += caracter
 
-        xml_parser = "GLC.xml"
+        xml_parser = "./config/GLC.xml"
         tree = ET.parse(xml_parser)
         root = tree.getroot()
         for symbol in root.iter('Symbol'):
             for x in Ts:
                 if x['Rotulo'] == symbol.attrib['Name']:
                     x['Estado'] = symbol.attrib['Index'] 
-                elif x['Rotulo'][0] == '.' and x['Rotulo'][-1] == '.' and symbol.attrib['Name'] == '.name.':
+                elif x['Rotulo'][0] == '.' and x['Rotulo'][-1] == '~' and symbol.attrib['Name'] == '.name.':
                     x['Estado'] = symbol.attrib['Index']
                 elif x['Rotulo'][0] == '0' and symbol.attrib['Name'] == '0constant':
                     x['Estado'] = symbol.attrib['Index']  
@@ -537,8 +537,9 @@ class Analise(Inuteis):
         print("\n")
         for x in Ts:
             fitaS.append(x['Estado'])
-            print(x)
-        print("\n Fita de saída:", fitaS, "\n")
+            # print(x)      #DEBUG TABELA DE SÍMBOLOS
+        fitaS.append(str(0))
+        # print("\n Fita de saída:", fitaS, "\n")       #DEBUG FITA DE SAÍDA
 
         for erro in Ts:
             if erro['Estado'] == '-1':
@@ -548,61 +549,68 @@ class Analise(Inuteis):
         pilha.append(0)
         erro = 0
         Rc = 0
+        controle = 0
         for fita in fitaS:
-            if erro == 1 or erro == -1:
-                break
-            for linha in root.iter('LALRState'):
+            while 1:
                 if erro == 1 or erro == -1:
                     break
-                elif linha.attrib['Index'] == str(pilha[-1]):
-                    for coluna in linha:
-                        if coluna.attrib['SymbolIndex'] == fita:
+                for linha in root.iter('LALRState'):
+                    if erro == 1 or erro == -1:
+                        break
+                    elif linha.attrib['Index'] == str(pilha[-1]):
+                        for coluna in linha:
+                            if coluna.attrib['SymbolIndex'] == fita:
 
-                            if coluna.attrib['Action'] == '1':              # Empilha
-                                pilha.append(fita)
-                                pilha.append(int(coluna.attrib['Value']))
-                                break
-
-                            elif coluna.attrib['Action'] == '2':            # Redução
-                                for prod in root.iter('Production'):
-                                    if prod.attrib['Index'] == coluna.attrib['Value']:
-                                        Rx = 2 * int(prod.attrib['SymbolCount'])
-                                        break
-                                if len(pilha) <= Rx:
-                                    erro = 1
+                                if coluna.attrib['Action'] == '1':             
+                                    controle = 0
+                                    pilha.append(fita)
+                                    pilha.append(int(coluna.attrib['Value']))
+                                    # print("\nEmpilha: ", pilha)     #DEBUG EMPILHA
                                     break
-                                for remove in range(Rx):
-                                    pilha.pop()
-                                for linhaR in root.iter('LALRState'):
-                                    if linhaR.attrib['Index'] == str(pilha[-1]):
-                                        for colunaR in linhaR:
-                                            if colunaR.attrib['SymbolIndex'] == prod.attrib['NonTerminalIndex']:
-                                                pilha.append(prod.attrib['NonTerminalIndex'])
-                                                pilha.append(int(colunaR.attrib['Value']))
-                                                Rc = 1
-                                                break
-                                    if Rc == 1:
-                                        Rc = 0
+
+                                elif coluna.attrib['Action'] == '2':            
+                                    controle = 1
+                                    for prod in root.iter('Production'):
+                                        if prod.attrib['Index'] == coluna.attrib['Value']:
+                                            Rx = 2 * int(prod.attrib['SymbolCount'])
+                                            break
+                                    if len(pilha) <= Rx:
+                                        erro = 1
                                         break
+                                    for remove in range(Rx):
+                                        pilha.pop()
+                                        # print("\nRedução 1: ", pilha)     #DEBUG REDUÇÃO
+                                    for linhaR in root.iter('LALRState'):
+                                        if linhaR.attrib['Index'] == str(pilha[-1]):
+                                            for colunaR in linhaR:
+                                                if colunaR.attrib['SymbolIndex'] == prod.attrib['NonTerminalIndex']:
+                                                    pilha.append(prod.attrib['NonTerminalIndex'])
+                                                    pilha.append(int(colunaR.attrib['Value']))
+                                                    Rc = 1
+                                                    # print("\nRedução 2: ", pilha)       #DEBUG APÓS REDUÇÃO
+                                                    break
+                                        if Rc == 1:
+                                            Rc = 0
+                                            break
 
-                            elif coluna.attrib['Action'] == '3':            # Salto
-                                pilha.append(int(coluna.attrib['Value']))
-                                break
+                                elif coluna.attrib['Action'] == '3':          
+                                    controle = 0
+                                    pilha.append(int(coluna.attrib['Value']))
+                                    # print("\nSalto: ", pilha)       #DEBUG SALTO
+                                    break
 
-                            elif coluna.attrib['Action'] == '4':            # Aceita
-                                erro = -1
-                                break
+                                elif coluna.attrib['Action'] == '4':          
+                                    controle = 0
+                                    erro = -1
+                                    # print("\nAceita: ", pilha)      #DEBUG ACEITA
+                                    break
+                        break
+                if controle == 0:
                     break
-        
-        if erro == 1:
+
+        if erro != -1:
             print("\nErro de sintaxe!\n")
-        elif erro == -1:
-            print("\nAceito!\n")
 
-
-
-
-        print("Pilha: ", pilha)
 
 analise = Analise(semInalcancaveis)
 analise.analisador_lexico_sintatico()
